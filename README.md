@@ -1,6 +1,6 @@
 # peak
 
-A high-pass for a print from Mimizan Lab. Nothing else.
+A high-pass for a print from Mimizan Lab.
 
 It adds `image − blur` back onto the print. The sharpest edges in the picture are measured, and the radius and the strength are set so those edges come as close as they can to 0.35 cycles per pixel without a bright rim. A soft picture gets a wider radius. A picture with no such edge is left as it was.
 
