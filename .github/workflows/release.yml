@@ -1,0 +1,83 @@
+# Builds peak_<version>-1_amd64.deb and peak-<version>-x86_64-linux.tar.gz
+# with dist/make_release.sh and attaches them to the GitHub release.
+#
+#   git tag v0.5.0 && git push origin v0.5.0
+#
+# ubuntu-24.04 pins the glibc floor of the .deb to 2.39 (Ubuntu 24.04, Debian 13).
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  release:
+    name: .deb and tarball (x86_64 Linux)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-dev libwayland-dev libgl1-mesa-dev libx11-dev dpkg-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-deb
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+
+      - name: Check that the tag matches Cargo.toml
+        if: github.ref_type == 'tag'
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build release artefacts
+        run: dist/make_release.sh
+
+      - name: Smoke-test the .deb
+        run: |
+          sudo apt-get install -y ./dist/peak_*_amd64.deb
+          peak --version
+          dpkg -s peak | grep -E '^(Version|Depends):'
+
+      - name: Upload artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: peak-x86_64-linux
+          path: |
+            dist/peak_*_amd64.deb
+            dist/peak-*-x86_64-linux.tar.gz
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Peak ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/peak_*_amd64.deb
+            dist/peak-*-x86_64-linux.tar.gz

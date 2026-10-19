@@ -1,0 +1,51 @@
+[package]
+name = "peak"
+version = "0.5.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "A high-pass for a print from Mimizan Lab"
+repository = "https://github.com/Draganito/peak"
+authors = ["Dragan Bojovic"]
+publish = false
+
+[dependencies]
+anyhow = "1"
+eframe = { version = "0.36", default-features = false, features = ["glow", "wayland", "x11", "default_fonts"] }
+egui = "0.36"
+egui-file-dialog = "0.15"
+serde_json = "1"
+tiff = "=0.10.3"
+winit = { version = "0.30", default-features = false, features = ["wayland-csd-adwaita"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+
+# Release artefacts (dist/make_release.sh): no debug info, stripped, fat LTO.
+[profile.dist]
+inherits = "release"
+debug = false
+strip = true
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+# `cargo deb --profile dist --no-build` rewrites target/release/ to this profile.
+[package.metadata.deb]
+name = "peak"
+maintainer = "Dragan Bojovic"
+copyright = "2026, Dragan Bojovic"
+license-file = ["LICENSE", "0"]
+section = "graphics"
+priority = "optional"
+depends = "$auto, libgl1, libxkbcommon0"
+recommends = "libwayland-client0, libwayland-egl1, libx11-6, libegl1"
+extended-description = """\
+A high-pass for a 16-bit print from Mimizan Lab. The sharpest edges in
+the picture set the radius and the strength. The paper border is left alone."""
+assets = [
+    ["target/release/peak", "usr/bin/", "755"],
+    ["dist/peak.desktop", "usr/share/applications/", "644"],
+    ["README.md", "usr/share/doc/peak/", "644"],
+]

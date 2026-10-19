@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Peak
+Comment=High-pass for a print from Mimizan Lab
+Exec=peak
+Terminal=false
+Type=Application
+Categories=Graphics;
+StartupNotify=true
